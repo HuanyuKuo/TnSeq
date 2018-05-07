@@ -6,8 +6,8 @@ from scipy import stats            # linear regression
 
 class Dilution:
     
-    def __init__(self, replica, strain, media, ref, neutral):
-        self.BNSIZE = 5*(10**5)  # bottle neck size of dilution
+    def __init__(self, replica, strain, media, ref, neutral, bnsize):
+        self.BNSIZE = bnsize#1*(10**5)  # bottle neck size of dilution
         self.N_DILUTE = 8
         self.N_GEN = 5
         self.N_BCID = None
@@ -28,15 +28,19 @@ class Dilution:
         #self.exp_ini_freq = None
         self.sort_idx = [] # index of sorting of initial barcode freq (in decending order)
         self.s_record = None
+        self.s_record_std = None
         #self.exp_exist = None
         #self.s_dat = []
         self.s_bcid = []
         self.s_inifreq = []
+        self.s_endfreq =[]
+        self.s_freq = []
         self.s_slope = []
         self.s_intercept = []
         self.s_rvalue = []
         self.s_pvalue = []
         self.s_stderr = []
+        self.s_var =[]
         #self.s_r2 = []
         self.tmp=None
         self.bc_count = None
@@ -45,8 +49,6 @@ class Dilution:
     def runs(self):
         # import inital bc_freq from file
         #self.read_files()     
-        # get experimental s
-        self.get_experimental_s()
         # simulate dilution and reads
         self.dilutions()
         # calculate simulated selection coefficient
@@ -66,21 +68,25 @@ class Dilution:
             x = []
             for gen in range(0,self.N_GEN):
                 if self.bc_count[gen][bc]!= 0:
-                    y.append(float(self.bc_count[gen][bc])/float(self.all_count[gen]))
+                    y.append(float(self.bc_count[gen][bc])/float(self.ref_counts[0][gen]+self.ref_counts[1][gen]))#float(self.all_count[gen]))
                     x.append(10.0*gen)
             y = np.log(y)
             #print self.bc_id[bc],x,y
             if len(x) >=5:
                 self.s_bcid.append(self.bc_id[bc])
                 self.s_inifreq.append(self.pvals[bc])
+                self.s_endfreq.append(float(self.bc_count[4][bc])/float(self.all_count[4]))
+                tmp = [float(self.bc_count[gen][bc])/float(self.all_count[gen]) for gen in range(0,5) ]
+                self.s_freq.append(tmp)
                 slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
                 self.s_slope.append(slope)
                 self.s_intercept.append(intercept)
                 self.s_rvalue.append(r_value)
                 self.s_pvalue.append(p_value)
                 self.s_stderr.append(std_err)
+                self.s_var.append(np.var(y))
 
-        print len(self.s_bcid)
+        #print len(self.s_bcid)
         '''
         # reading file
         filename = './source/Slope_HO_sum_norm_output.txt'
@@ -134,7 +140,7 @@ class Dilution:
     def read_files(self):
        
         # Read input file:
-        filename = './output/' + self.replica + '_' + self.strain + '_' + self.media + '_clean.txt' # file name
+        filename = './source/' + self.replica + '_' + self.strain + '_' + self.media + '_clean.txt' # file name
         fopen = open(filename,'r')  # open file
         dat = fopen.read().split('\n')  # read file matrix and save in 1-dimension dat
         fopen.close() # close file
@@ -177,7 +183,7 @@ class Dilution:
                 idx2 = self.get_index(self.sort_index, idx1) # index of reference barcode in sorted indxing
                 self.ref_idx.append(idx2)
                 for gen in range(0, self.N_GEN):
-                    print idx1, idx2
+                    #print idx1, idx2
                     self.ref_counts[ref][gen] = self.bc_count[gen][idx2]
                     
         '''
@@ -309,7 +315,7 @@ class Dilution:
         plt.hist(s_percent, 16, label = slabel)
         plt.title('Histogram of selection coefficient')
         plt.xlabel('s (per generation) %')
-        plt.legend()
+        plt.legend(loc="best")
         plt.show()
         print (sN+'\n'+sw+'\n'+sm+'\n')#+sr)
        
