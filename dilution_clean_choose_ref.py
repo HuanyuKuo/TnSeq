@@ -2,6 +2,7 @@ import numpy as np                 # Math library
 import matplotlib.pyplot as plt    # Plots
 import sys                         # Directly print to output file
 from scipy import stats            # linear regression
+import random
 
 
 class Dilution:
@@ -24,13 +25,9 @@ class Dilution:
         self.Pvals = [] # sampling barcode freqency (simulated value)
         self.all_count = []  # all reads, experiment value
         self.simu_reads = [] # simulated barcode reads
-        #self.exp_reads = None
-        #self.exp_ini_freq = None
         self.sort_idx = [] # index of sorting of initial barcode freq (in decending order)
         self.s_record = None
         self.s_record_std = None
-        #self.exp_exist = None
-        #self.s_dat = []
         self.s_bcid = []
         self.s_inifreq = []
         self.s_endfreq =[]
@@ -68,7 +65,8 @@ class Dilution:
             x = []
             for gen in range(0,self.N_GEN):
                 if self.bc_count[gen][bc]!= 0:
-                    y.append(float(self.bc_count[gen][bc])/float(self.ref_counts[0][gen]+self.ref_counts[1][gen]))#float(self.all_count[gen]))
+                    #y.append(float(self.bc_count[gen][bc])/float(self.ref_counts[0][gen]+self.ref_counts[1][gen]))#float(self.all_count[gen]))
+                    y.append(float(self.bc_count[gen][bc])/float(self.bc_count[gen][0]))
                     x.append(10.0*gen)
             y = np.log(y)
             #print self.bc_id[bc],x,y
@@ -180,11 +178,13 @@ class Dilution:
     def rescale_reads(self,reads,idx1,idx2):
         scaled_reads =[]
         for gen in range(0,self.N_GEN):
-            reference_reads = reads[gen,idx1]+reads[gen,idx2]
+            #reference_reads = reads[gen,idx1]+reads[gen,idx2]
+            reference_reads = reads[gen,0] # max ini freq
             scaled_reads.extend(reads[gen,0:self.N_BCID] / float(reference_reads))
             
         scaled_reads = np.resize(scaled_reads,(self.N_GEN,self.N_BCID))
         return scaled_reads
+    
         
     def selection_coef(self, scaled_reads):
         
@@ -268,16 +268,18 @@ class Dilution:
         x = np.arange(0,45,10)
         col = plt.cm.jet(np.linspace(0,1,20)) 
         scaled_reads = self.rescale_reads(self.simu_reads, self.ref_idx[0], self.ref_idx[1])
-        for bc in range(0,20):#self.N_BCID/100):
+        for bc in range(1,20):#self.N_BCID/100):
+            #bc = random.randint(0, len(self.s_record)-1)
             s = self.s_record[bc] 
             if np.isnan(s) == False: # if s is NOT Nan
                 y = np.log(scaled_reads[0:self.N_GEN,bc])
-                cidx = int( (((0.1+s)>0)&((-0.1+s)<0))*(0.1+s)*100+ ((-0.1+s)>=0)*10)
+                #print y
+                #cidx = int( (((0.1+s)>0)&((-0.1+s)<0))*(0.1+s)*100+ ((-0.1+s)>=0)*10)
                 #plt.plot(x,y,color=col[cidx],marker='.')
-                plt.plot(x,y,color=col[bc],marker='.')
+                plt.plot(x,y,color=col[idx],marker='.')
         plt.title("SIMU Log of BC Freqeucy scaled by reference strains")
         plt.xlabel('generation')
-        plt.ylim(0.6,2.5)
+        #plt.ylim(-1.5,1)
         plt.xlim(-1,41)
         #plt.show()
         
@@ -286,19 +288,21 @@ class Dilution:
         col = plt.cm.jet(np.linspace(0,1,20)) 
         #scaled_reads = self.rescale_reads(self.simu_reads, self.ref_idx[0], self.ref_idx[1])
         #self.s_freq = []
-
-        for bc in range(0,20):#self.N_BCID/100):
+        
+        #ref_count = np.add(self.ref_counts[0][0:self.N_GEN],self.ref_counts[1][0:self.N_GEN])
+        ref_count = [self.bc_count[gen][0] for gen in range(0,self.N_GEN)]
+        for bc in range(1,20):#self.N_BCID/100):
+            #bc = random.randint(0,len(self.s_slope)-1)
             s = self.s_slope[bc] 
             if np.isnan(s) == False: # if s is NOT Nan
                 tmp = np.multiply(self.s_freq[bc][0:self.N_GEN],self.all_count)
-                ref_count = np.add(self.ref_counts[0][0:self.N_GEN],self.ref_counts[1][0:self.N_GEN])
                 tmp = np.divide(tmp,ref_count)
                 y = np.log(tmp)
                 cidx = int( (((0.1+s)>0)&((-0.1+s)<0))*(0.1+s)*100+ ((-0.1+s)>=0)*10)
-                plt.plot(x,y,color=col[bc],marker='.')
+                plt.plot(x,y,color=col[idx],marker='.')
         plt.title("EXP Log of BC Freqeucy scaled by reference strains")
         plt.xlabel('generation')
-        plt.ylim(0.6,2.5)
+        #plt.ylim(-1.5,1)
         plt.xlim(-1,41)
         plt.show()
     def get_s_REF(self):        

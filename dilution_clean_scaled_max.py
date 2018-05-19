@@ -185,8 +185,17 @@ class Dilution:
             
         scaled_reads = np.resize(scaled_reads,(self.N_GEN,self.N_BCID))
         return scaled_reads
-        
-        
+    
+    def rescale_reads_exp_max(self,reads,idx1,idx2):
+        scaled_reads =[]
+        for gen in range(0,self.N_GEN):
+            #reference_reads = reads[gen,idx1]+reads[gen,idx2]
+            reference_reads = reads[gen][0] # max ini freq
+            #reference_reads = self.bc_count[gen][0] # max ini freq
+            scaled_reads.extend(reads[gen,0:self.N_BCID] / float(reference_reads))
+            
+        scaled_reads = np.resize(scaled_reads,(self.N_GEN,self.N_BCID))
+        return scaled_reads
     def selection_coef(self, scaled_reads):
         
         s_simu = [0 for i in range(0,self.N_BCID)]
